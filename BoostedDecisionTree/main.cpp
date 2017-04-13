@@ -56,7 +56,7 @@ int main() {
 	test_data(3, 2) = 1;
 	test_classifications(3, 0) = 1;
 
-	
+	// setup boost
 	cv::Ptr<cv::ml::Boost> boost = cv::ml::Boost::create();
 
 
@@ -81,10 +81,17 @@ int main() {
 	boost->setRegressionAccuracy(0.0);
 
 
+	// if you want to load a pretrained model,
+	// use the following code
+	//boost = cv::ml::StatModel::load<cv::ml::Boost>("trained.xml");
+
+
+	// train the trees
 	boost->train(training_data, cv::ml::ROW_SAMPLE, training_classifications);
 	boost->save("trained.xml");
 	std::cout << "training done." << std::endl;
 
+	// prediction
 	for (int i = 0; i < NUMBER_OF_TEST_SAMPLES; ++i) {
 		cv::Mat result;
 		float ret = boost->predict(test_data.row(i), result);
