@@ -78,10 +78,6 @@ namespace ecp {
 	}
 
 	void loadData(const QString& image_dir, const QString& ground_truth_image_dir, cv::Mat& X, cv::Mat& Y) {
-		// create dataset
-		//QDir ground_truth_dir(ground_truth_image_dir_path);
-		//QDir images_dir(image_dir_path);
-
 		QStringList image_files = QDir(image_dir).entryList(QDir::NoDotAndDotDot | QDir::Files);
 
 		int patch_size = 2;
