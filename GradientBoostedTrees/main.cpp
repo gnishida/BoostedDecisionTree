@@ -19,12 +19,12 @@ void genereateDataset(cv::Mat_<float>& X, cv::Mat_<float>& Y) {
 
 void genereateDataset2(cv::Mat_<float>& X, cv::Mat_<float>& Y) {
 	for (int i = 0; i < X.rows; ++i) {
-		X(i, 0) = (float)(rand() % 1000) / 1000;
-		X(i, 1) = (float)(rand() % 1000) / 1000;
-		X(i, 2) = (float)(rand() % 1000) / 1000;
+		X(i, 0) = (float)(rand() % 512) - 255;
+		X(i, 1) = (float)(rand() % 512) - 255;
+		X(i, 2) = (float)(rand() % 512) - 255;
 
-		if (X(i, 0) > 0.7 || (X(i, 1) > 0.7 && X(i, 2) > 0.7)) Y(i, 0) = 0;
-		else if (X(i, 0) + X(i, 1) + X(i, 2) < 1) Y(i, 0) = 1;
+		if (X(i, 0) > 90 || (X(i, 1) > 90 && X(i, 2) > 90)) Y(i, 0) = 0;
+		else if (X(i, 0) + X(i, 1) + X(i, 2) < 0) Y(i, 0) = 1;
 		else Y(i, 0) = 2;
 	}
 }

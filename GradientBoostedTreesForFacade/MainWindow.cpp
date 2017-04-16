@@ -26,13 +26,12 @@ void MainWindow::onRun() {
 	cv::Mat Y_train;
 	ecp::loadData(train_image_dir, ground_truth_image_dir, X_train, Y_train);
 
-
 	// Gradient boosted trees
 	CvGBTreesParams params;
 	params.loss_function_type = CvGBTrees::DEVIANCE_LOSS;
-	params.weak_count = 10;
-	params.max_depth = 2;
-	params.subsample_portion = 1.0;
+	params.weak_count = 100;
+	params.max_depth = 18;
+	params.subsample_portion = 0.3;
 
 	CvGBTrees trees;
 	std::cout << "Training ...";
@@ -53,45 +52,57 @@ void MainWindow::onRun() {
 	}
 	QStringList image_files = QDir(test_image_dir).entryList(QDir::NoDotAndDotDot | QDir::Files);
 
-	int patch_size = 2;
-	int feature_size = patch_size * patch_size;
-
 	cv::Mat_<float> confusionMat(7, 7, 0.0f);
 
-	// count the number of samples
+	// test for each image
+	printf("Image testing:");
+	int correct = 0;
+	int total = 0;
 	for (int i = 0; i < image_files.size(); ++i) {
+		printf("\rImage testing: %d", i + 1);
+
 		// remove the file extension
 		int index = image_files[i].lastIndexOf(".");
 		QString filename = image_files[i].left(index);
 
+		// load image
 		cv::Mat image = cv::imread((test_image_dir + "/" + filename + ".jpg").toUtf8().constData());
 		cv::Mat ground_truth = cv::imread((ground_truth_image_dir + "/" + filename + ".png").toUtf8().constData());
 
+		// initialize result image
 		cv::Mat result(image.size(), CV_8UC3, cv::Scalar(0, 0, 0));
 
-		for (int y = patch_size; y < image.rows - patch_size + 1; y++) {
-			for (int x = patch_size; x < image.cols - patch_size + 1; x++) {
-				cv::Mat image_roi = image(cv::Rect(x, y, patch_size, patch_size));
-				//std::cout << roi.rows << "," << roi.cols << std::endl;
-				cv::Vec3b ground_truth_color = ground_truth.at<cv::Vec3b>(y + (patch_size - 1) / 2, x + (patch_size - 1) / 2);
-				int label = ecp::convertColorToLabel(ground_truth_color);
+		// extract features
+		cv::Mat X_test;
+		cv::Mat Y_test;
+		ecp::extractFeaturesFromImage(image, X_test);
+		ecp::extractLabelsFromImage(ground_truth, Y_test);
 
-				cv::Mat X_test;
-				ecp::extractExampleFromPatch(image_roi, X_test);
+		// estimate label for each pixel
+		for (int y = 0; y < image.rows; y++) {
+			for (int x = 0; x < image.cols; x++) {
+				int idx = y * image.cols + x;
 
 				// test
-				float pred = trees.predict(X_test);
+				float pred = trees.predict(X_test.row(idx));
 
 				result.at<cv::Vec3b>(y, x) = ecp::convertLabelToColor(pred);
 
-				confusionMat(label, (int)pred) += 1;
+				// update confusion matrix
+				float true_label = Y_test.at<float>(idx, 0);
+				confusionMat((int)true_label, (int)pred) += 1;
+
+				if (true_label == pred) correct++;
+				total++;
 			}
 		}
 
-
+		// save the result image
 		cv::imwrite((result_dir + "/" + filename + ".png").toUtf8().constData(), result);
 	}
+	printf("\n");
 
+	std::cout << "accuracy = " << (float)correct / total << " (" << correct << " / " << total << ")" << std::endl;
 
 	// output confusion matrix
 	cv::Mat_<float> confusionMatSum;
