@@ -20,7 +20,7 @@ void MainWindow::onRun() {
 	QString ground_truth_image_dir = "../ECP/ground_truth/";
 	QString result_dir = "results/";
 
-
+#if 1
 	// training dataset
 	cv::Mat X_train;
 	cv::Mat Y_train;
@@ -38,11 +38,20 @@ void MainWindow::onRun() {
 	trees.train(X_train, CV_ROW_SAMPLE, Y_train, cv::Mat(), cv::Mat(), cv::Mat(), cv::Mat(), params);
 	std::cout << " done." << std::endl;
 
+	int correct = 0;
+	for (int i = 0; i < X_train.rows; ++i) {
+		float pred = trees.predict(X_train.row(i));
+		float label = Y_train.at<float>(i, 0);
+		if (pred == label) correct++;
+	}
+	std::cout << "accuracy for training data = " << (float)correct / X_train.rows << " (" << correct << " / " << X_train.rows << ")" << std::endl;
+
 
 	// release memory for training dataset
 	X_train = cv::Mat();
 	Y_train = cv::Mat();
 
+#endif
 
 	//////////////////////////////////////////////////////////////////////////////////////////
 	// test
@@ -56,7 +65,7 @@ void MainWindow::onRun() {
 
 	// test for each image
 	printf("Image testing:");
-	int correct = 0;
+	correct = 0;
 	int total = 0;
 	for (int i = 0; i < image_files.size(); ++i) {
 		printf("\rImage testing: %d", i + 1);
@@ -85,15 +94,15 @@ void MainWindow::onRun() {
 
 				// test
 				float pred = trees.predict(X_test.row(idx));
+				float true_label = Y_test.at<float>(idx, 0);
+
+				if (pred == true_label) correct++;
+				total++;
 
 				result.at<cv::Vec3b>(y, x) = ecp::convertLabelToColor(pred);
 
 				// update confusion matrix
-				float true_label = Y_test.at<float>(idx, 0);
 				confusionMat((int)true_label, (int)pred) += 1;
-
-				if (true_label == pred) correct++;
-				total++;
 			}
 		}
 
@@ -104,13 +113,14 @@ void MainWindow::onRun() {
 
 	std::cout << "accuracy = " << (float)correct / total << " (" << correct << " / " << total << ")" << std::endl;
 
+
 	// output confusion matrix
 	cv::Mat_<float> confusionMatSum;
 	cv::reduce(confusionMat, confusionMatSum, 1, CV_REDUCE_SUM);
 
 	for (int r = 0; r < confusionMat.rows; ++r) {
 		for (int c = 0; c < confusionMat.cols; ++c) {
-			confusionMat(r, c) /= confusionMatSum(r, 0);
+			confusionMat(r, c) = (float)confusionMat(r, c) / confusionMatSum(r, 0);
 		}
 	}
 

@@ -77,6 +77,7 @@ namespace ecp {
 		}
 	}
 
+
 	void extractFeaturesFromImage(const cv::Mat& image, cv::Mat& features) {
 		cv::Mat image_lab;
 		cv::cvtColor(image, image_lab, cv::COLOR_BGR2Lab);
@@ -144,6 +145,36 @@ namespace ecp {
 		}
 	}
 
+	void extractFeaturesFromImage2(const cv::Mat& image, cv::Mat& features) {
+		// for each pixel, get 5x5x3-dimensional feature
+		features = cv::Mat(image.rows * image.cols, 75, CV_32F);
+		for (int y = 0; y < image.rows; ++y) {
+			for (int x = 0; x < image.cols; ++x) {
+				int idx = y * image.cols + x;
+
+				int cnt = 0;
+
+				for (int yy = y - 2; yy <= y + 2; yy++) {
+					for (int xx = x - 2; xx <= x + 2; xx++) {
+						int u = xx;
+						int v = yy;
+						if (u < 0) u = 0;
+						if (u >= image.cols) u = image.cols - 1;
+						if (v < 0) v = 0;
+						if (v >= image.rows) v = image.rows - 1;
+
+						cv::Vec3b col = image.at<cv::Vec3b>(v, u);
+						for (int i = 0; i < 3; ++i) {
+							features.at<float>(idx, cnt++) = col[i];
+						}
+					}
+				}
+			}
+		}
+	}
+
+
+
 	void extractLabelsFromImage(const cv::Mat& image, cv::Mat& labels) {
 		// for each pixel, get label
 		labels = cv::Mat(image.rows * image.cols, 1, CV_32F);
@@ -192,6 +223,7 @@ namespace ecp {
 			extractLabelsFromImage(ground_truth, labels);
 			//std::cout << labels << std::endl;
 			cv::Mat roi2(Y, cv::Rect(0, cnt, labels.cols, labels.rows));
+			labels.copyTo(roi2);
 
 			cnt += features.rows;
 		}
